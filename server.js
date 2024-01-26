@@ -3,20 +3,23 @@ const app=express()
 const mongoose=require('mongoose')
 const router=require('./routes/user')
 const otpRouter=require('./routes/otp')
+const protectRouter=require('./routes/protected')
+const dotenv=require('dotenv').config()
 
 app.use(express.json())
 
 app.use('/',router)
 app.use('/',router)
 app.use('/',otpRouter)
+app.use('/',protectRouter)
 
 
 
 
 
-app.listen(3000,()=>{
+app.listen(process.env.PORT,()=>{
   console.log("server running")
-mongoose.connect("mongodb://localhost:27017",{
+mongoose.connect(process.env.STRING,{
   useNewUrlParser:true,
   UseUnifiedTopology:true
 }).then(()=>{

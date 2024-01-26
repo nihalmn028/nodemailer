@@ -1,16 +1,36 @@
 const express=require('express')
 const router=express.Router()
+const bcrypt=require('bcrypt')
 const nodemailer=require('nodemailer')
 const schema=require('../model/schema')
+const jwt=require('jsonwebtoken')
 router.post('/register',async (req,res)=>{
   try {
     const {username,password}=req.body
-   await schema.create({username,password})
+    const hashedPassword=await bcrypt.hash(password,10)
+   await schema.create({username,password:hashedPassword})
     res.status(200).json({message:"register successfully"})
   } catch (error){
     res.status(500).json({error:"register failed"})
   }
  
+})
+router.post('/login',async (req,res)=>{
+  try {
+    const {username,password}=req.body
+    const user=await schema.findOne({username})
+    if(!user){
+    return res.status(401).json({error:"authentication failed"})}
+  const passwordMatch=await bcrypt.compare(password,user.password)
+  if(!passwordMatch){
+    return res.status(401).json({error:"authentication failed"})}
+const token=await jwt.sign({userId:user._id},"secret key",{expiresIn:"1h"})
+res.status(200).json({token})
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({error:"login failed"})
+
+  }
 })
 router.post('/forgot',async (req,res)=>{
   try {
@@ -18,9 +38,9 @@ router.post('/forgot',async (req,res)=>{
    const schema1=await schema.findOne({username})
    if(!schema1)
    return res.status(401).json({error:"otp failed"})
-  const otp= Math.floor(1000000+Math.random()*9000000)
-  const sotp= otp.toString()
-  await schema.findByIdAndUpdate(schema1._id,{otp:sotp},{new:true})
+  const otp= Math.floor(100000+Math.random()*900000)
+  
+  await schema.findByIdAndUpdate(schema1._id,{otp},{new:true})
 
   // Create a transporter using SMTP transport
   const transporter = await nodemailer.createTransport({
@@ -36,21 +56,23 @@ router.post('/forgot',async (req,res)=>{
     from: 'nihalmn03@gmail.com',
     to: username,
     subject: 'subject otpp', 
-    text: "otp is "+sotp
+    html: `otp is <h1> ${otp}</h1>`
   };
   
   // Send email
-  await transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error('Error:', error);
-    } else {
-      console.log('Email sent:', info.response);
-    }
+  await transporter.sendMail(mailOptions, () => {
+   
+    console.log('Email sent:');
+   
+   
+  
   });
   
     res.status(200).json({message:"otp successfull"})
   } catch (error){
     res.status(500).json({error:"otp failed"})
+    console.log(error);
+
   }
  
 })

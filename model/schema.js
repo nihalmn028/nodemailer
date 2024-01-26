@@ -12,7 +12,7 @@ const schema=mongoose.Schema({
     
   },
   otp:{
-    type:String,
+    type:Number,
    
   }
 })
